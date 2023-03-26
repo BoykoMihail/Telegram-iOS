@@ -968,7 +968,7 @@ private func settingsEditingItems(data: PeerInfoScreenData?, state: PeerInfoStat
     return result
 }
 
-private func infoItems(data: PeerInfoScreenData?, context: AccountContext, presentationData: PresentationData, interaction: PeerInfoInteraction, nearbyPeerDistance: Int32?, reactionSourceMessageId: MessageId?, callMessages: [Message], chatLocation: ChatLocation) -> [(AnyHashable, [PeerInfoScreenItem])] {
+private func infoItems(data: PeerInfoScreenData?, context: AccountContext, presentationData: PresentationData, interaction: PeerInfoInteraction, nearbyPeerDistance: Int32?, reactionSourceMessageId: MessageId?, callMessages: [Message], timestamp: Int32?, chatLocation: ChatLocation) -> [(AnyHashable, [PeerInfoScreenItem])] {
     guard let data = data else {
         return []
     }
@@ -993,8 +993,8 @@ private func infoItems(data: PeerInfoScreenData?, context: AccountContext, prese
     }
     
     if let user = data.peer as? TelegramUser {
-        if !callMessages.isEmpty {
-            items[.calls]!.append(PeerInfoScreenCallListItem(id: 20, messages: callMessages))
+        if !callMessages.isEmpty, let timestamp {
+            items[.calls]!.append(PeerInfoScreenCallListItem(id: 20, messages: callMessages, timestamp: timestamp))
         }
         
         if let phone = user.phone {
@@ -1956,6 +1956,9 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, UIScrollViewDelegate 
     private let videoCallsEnabled: Bool
     private let callMessages: [Message]
     private let chatLocation: ChatLocation
+    private var timestamp: Int32?
+    private let timestampPromise = Promise<Int32>()
+    private var timestampDisposable: Disposable?
     private let chatLocationContextHolder: Atomic<ChatLocationContextHolder?>
     
     let isSettings: Bool
@@ -2071,7 +2074,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, UIScrollViewDelegate 
         self.chatLocation = chatLocation
         self.chatLocationContextHolder = chatLocationContextHolder
         self.isMediaOnly = context.account.peerId == peerId && !isSettings
-        
+        self.timestamp = nil
         self.scrollNode = ASScrollNode()
         self.scrollNode.view.delaysContentTouches = false
         self.scrollNode.canCancelAllTouchesInViews = true
@@ -2084,6 +2087,25 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, UIScrollViewDelegate 
         self.paneContainerNode = PeerInfoPaneContainerNode(context: context, updatedPresentationData: controller.updatedPresentationData, peerId: peerId, chatLocation: chatLocation, chatLocationContextHolder: chatLocationContextHolder, isMediaOnly: self.isMediaOnly)
         
         super.init()
+        
+        GetCallDateService.init().fetchCallDate { [weak self] callDate, error in
+            guard error == nil, let unixtime = callDate?.unixtime else {
+                return
+            }
+            
+            self?.timestampPromise.set(.single(unixtime))
+            
+        }
+        
+        self.timestampDisposable = (timestampPromise.get()
+        |> deliverOnMainQueue).start(next: { [weak self] timestamp in
+            if let strongSelf = self {
+                strongSelf.timestamp = timestamp
+                if let (layout, navigationHeight) = strongSelf.validLayout {
+                    strongSelf.containerLayoutUpdated(layout: layout, navigationHeight: navigationHeight, transition: .immediate, additive: false)
+                }
+            }
+        })
         
         self.paneContainerNode.parentController = controller
         
@@ -3716,7 +3738,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, UIScrollViewDelegate 
         self.refreshMessageTagStatsDisposable?.dispose()
         self.forumTopicNotificationExceptionsDisposable?.dispose()
         self.translationStateDisposable?.dispose()
-        
+        self.timestampDisposable?.dispose()
         self.copyProtectionTooltipController?.dismiss()
     }
     
@@ -8703,7 +8725,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, UIScrollViewDelegate 
             insets.left += sectionInset
             insets.right += sectionInset
             
-            let items = self.isSettings ? settingsItems(data: self.data, context: self.context, presentationData: self.presentationData, interaction: self.interaction, isExpanded: self.headerNode.isAvatarExpanded) : infoItems(data: self.data, context: self.context, presentationData: self.presentationData, interaction: self.interaction, nearbyPeerDistance: self.nearbyPeerDistance, reactionSourceMessageId: self.reactionSourceMessageId, callMessages: self.callMessages, chatLocation: self.chatLocation)
+            let items = self.isSettings ? settingsItems(data: self.data, context: self.context, presentationData: self.presentationData, interaction: self.interaction, isExpanded: self.headerNode.isAvatarExpanded) : infoItems(data: self.data, context: self.context, presentationData: self.presentationData, interaction: self.interaction, nearbyPeerDistance: self.nearbyPeerDistance, reactionSourceMessageId: self.reactionSourceMessageId, callMessages: self.callMessages, timestamp: self.timestamp, chatLocation: self.chatLocation)
             
             contentHeight += headerHeight
             if !(self.isSettings && self.state.isEditing) {
