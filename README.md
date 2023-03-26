@@ -43,35 +43,12 @@ mkdir -p "$HOME/telegram-bazel-cache"
 ```
 python3 build-system/Make/Make.py \
     --cacheDir="$HOME/telegram-bazel-cache" \
-    build \
-    --configurationPath=path-to-configuration.json \
-    --codesigningInformationPath=path-to-provisioning-data \
-    --buildNumber=100001 \
-    --configuration=release_universal
-```
-
-6. (Optional) Generate an Xcode project
-
-```
-python3 build-system/Make/Make.py \
-    --cacheDir="$HOME/telegram-bazel-cache" \
     generateProject \
-    --configurationPath=path-to-configuration.json \
-    --codesigningInformationPath=path-to-provisioning-data \
-    --disableExtensions
-```
-
-It is possible to generate a project that does not require any codesigning certificates to be installed: add `--disableProvisioningProfiles` flag:
-```
-python3 build-system/Make/Make.py \
-    --cacheDir="$HOME/telegram-bazel-cache" \
-    generateProject \
-    --configurationPath=path-to-configuration.json \
-    --codesigningInformationPath=path-to-provisioning-data \
+    --configurationPath="$HOME/telegram-configuration/configuration.json" \
+    --codesigningInformationPath=$HOME/telegram-provisioning/fake-codesigning \
     --disableExtensions \
     --disableProvisioningProfiles
 ```
-
 
 Tip: use `--disableExtensions` when developing to speed up development by not building application extensions and the WatchOS app.
 
