@@ -31,7 +31,7 @@ cp -R build-system/fake-codesigning $HOME/telegram-provisioning/
 
 - Modify the values in `configuration.json` ("enable_siri": false, "enable_icloud": false)
 
-4. (Optional) Create a build cache directory to speed up rebuilds
+4. (Optional) Create a build cache directory to speed up rebuilds. (need to install bazel: brew install bazel)
 
 ```
 mkdir -p "$HOME/telegram-bazel-cache"
