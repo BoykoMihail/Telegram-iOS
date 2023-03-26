@@ -17,10 +17,10 @@ There are several things we require from **all developers** for the moment.
 2. Clone the project from GitHub:
 
 ```
-git clone --recursive -j8 https://github.com/TelegramMessenger/Telegram-iOS.git
+git clone --recursive -j8 git@github.com:BoykoMihail/Telegram-iOS.git
 ```
 
-3. Adjust configuration parameters
+3. Adjust configuration parameters (from project folder)
 
 ```
 mkdir -p $HOME/telegram-configuration
@@ -29,8 +29,7 @@ cp build-system/appstore-configuration.json $HOME/telegram-configuration/configu
 cp -R build-system/fake-codesigning $HOME/telegram-provisioning/ 
 ```
 
-- Modify the values in `configuration.json`
-- Replace the provisioning profiles in `profiles` with valid files
+- Modify the values in `configuration.json` ("enable_siri": false, "enable_icloud": false)
 
 4. (Optional) Create a build cache directory to speed up rebuilds
 
